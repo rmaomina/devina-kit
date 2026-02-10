@@ -7,4 +7,12 @@ export default defineConfig({
   build: {
     emptyOutDir: false,
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://devina-kit.vercel.app',
+        changeOrigin: true,
+      },
+    },
+  },
 })

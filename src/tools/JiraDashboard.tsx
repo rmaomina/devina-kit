@@ -77,12 +77,13 @@ async function fetchJira(
 
 // ─── Component ───
 export default function JiraDashboard() {
-  const { auth, loading: authLoading, error: authError, connect, disconnect } = useJiraAuth()
+  const { auth, loading: authLoading, error: authError, remembered, connect, disconnect } = useJiraAuth()
 
   // Auth form
   const [domain, setDomain] = useState('')
   const [email, setEmail] = useState('')
   const [token, setToken] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
 
   // Dashboard state
   const [year, setYear] = useState(new Date().getFullYear())
@@ -219,10 +220,19 @@ export default function JiraDashboard() {
           {authError && (
             <p className="text-sm text-red-500">{authError}</p>
           )}
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="w-4 h-4 accent-dewalt rounded"
+            />
+            <span className="text-xs text-gray-500 dark:text-gray-400">JIRA 설정 기억하기</span>
+          </label>
           <button
             onClick={() => {
               const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/+$/, '')
-              connect(cleanDomain, email, token)
+              connect(cleanDomain, email, token, rememberMe)
             }}
             disabled={authLoading || !domain || !email || !token}
             className="w-full px-4 py-2 bg-dewalt hover:bg-dewalt-hover disabled:opacity-50 text-black text-sm font-semibold rounded transition-colors duration-150"
@@ -230,7 +240,7 @@ export default function JiraDashboard() {
             {authLoading ? 'Connecting...' : 'Connect'}
           </button>
           <p className="text-[11px] text-gray-400 dark:text-gray-500">
-            Token is stored in localStorage only. Generate one at{' '}
+            {remembered ? 'Saved to your account.' : 'Token is stored in localStorage only.'}{' '}
             <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" rel="noopener noreferrer" className="underline hover:text-dewalt">
               Atlassian API Tokens
             </a>
