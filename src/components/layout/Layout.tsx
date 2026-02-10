@@ -7,7 +7,7 @@ interface LayoutProps {
   dark: boolean
   onToggleTheme: () => void
   tools: Tool[]
-  activeTool: string
+  activeTool: string | null
   favorites: string[]
   search: string
   onSearchChange: (value: string) => void

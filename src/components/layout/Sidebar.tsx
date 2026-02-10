@@ -2,7 +2,7 @@ import type { Tool } from '../../config/toolRegistry'
 
 interface SidebarProps {
   tools: Tool[]
-  activeTool: string
+  activeTool: string | null
   favorites: string[]
   search: string
   onSearchChange: (value: string) => void
