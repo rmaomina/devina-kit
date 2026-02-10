@@ -52,4 +52,10 @@ export const tools: Tool[] = [
     keywords: ['uuid', 'random', '랜덤', '유유아이디'],
     component: lazy(() => import('../tools/UUIDGenerator')),
   },
+  {
+    id: 'jira-dashboard',
+    name: 'JIRA Dashboard',
+    keywords: ['jira', 'worklog', 'dashboard', '지라', '대시보드', '공수'],
+    component: lazy(() => import('../tools/JiraDashboard')),
+  },
 ]
