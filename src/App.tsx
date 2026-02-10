@@ -1,14 +1,40 @@
+import { useState, Suspense } from 'react'
+import Layout from './components/layout/Layout'
+import { tools } from './config/toolRegistry'
+import { useTheme } from './hooks/useTheme'
+import { useFavorites } from './hooks/useFavorites'
+
 function App() {
+  const { dark, toggle: toggleTheme } = useTheme()
+  const { favorites, toggle: toggleFavorite } = useFavorites()
+  const [activeTool, setActiveTool] = useState(tools[0].id)
+  const [search, setSearch] = useState('')
+
+  const currentTool = tools.find((t) => t.id === activeTool)
+  const ActiveComponent = currentTool?.component
+
   return (
-    <div className="h-screen flex items-center justify-center bg-surface-light font-sans">
-      <div className="text-center">
-        <div className="w-12 h-12 rounded-lg bg-dewalt flex items-center justify-center text-xl font-black text-[#1A1A1A] mx-auto mb-4">
-          D
-        </div>
-        <h1 className="text-2xl font-bold text-[#1A1A1A]">devina-kit</h1>
-        <p className="text-sm text-gray-500 mt-1">개발자용 유틸리티 도구 모음</p>
-      </div>
-    </div>
+    <Layout
+      dark={dark}
+      onToggleTheme={toggleTheme}
+      tools={tools}
+      activeTool={activeTool}
+      favorites={favorites}
+      search={search}
+      onSearchChange={setSearch}
+      onSelectTool={setActiveTool}
+      onToggleFavorite={toggleFavorite}
+    >
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center py-12 text-gray-400">
+            로딩 중...
+          </div>
+        }
+      >
+        {ActiveComponent && <ActiveComponent />}
+      </Suspense>
+    </Layout>
   )
 }
 
