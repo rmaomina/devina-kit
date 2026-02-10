@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+/* Tailwind v4: dark mode with class strategy */
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-dewalt: #FECC02;
+  --color-dewalt-hover: #E5B800;
+  --color-dewalt-light: #FFF3B0;
+  --color-dewalt-dark: #FFD740;
+
+  --color-surface-light: #FAFAFA;
+  --color-surface-dark: #0F0F0F;
+
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
