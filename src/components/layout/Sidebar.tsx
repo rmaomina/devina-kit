@@ -143,8 +143,8 @@ function SidebarItem({ tool, active, fav, onSelect, onToggleFav }: SidebarItemPr
     <div
       className={`group flex items-center gap-1 rounded-md mx-1 cursor-pointer transition-colors duration-150 ${
         active
-          ? 'bg-dewalt/15 dark:bg-dewalt/10 border-l-3 border-l-dewalt'
-          : 'border-l-3 border-l-transparent hover:bg-gray-100 dark:hover:bg-white/5'
+          ? 'bg-dewalt/20 dark:bg-dewalt/15'
+          : 'hover:bg-gray-100 dark:hover:bg-white/5'
       }`}
     >
       <button
