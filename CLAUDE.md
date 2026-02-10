@@ -22,3 +22,7 @@ npm run build # 프로덕션 빌드
 ## 도구 추가 방법
 1. `src/tools/` 에 컴포넌트 생성
 2. `src/config/toolRegistry.ts` 에 등록
+
+## Git 규칙
+- 작업 완료 후 main 브랜치에 커밋 + 푸시
+- Remote: `git@github.com:rmaomina/devina-kit.git` (SSH)

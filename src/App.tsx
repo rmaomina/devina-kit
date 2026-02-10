@@ -5,6 +5,7 @@ import { useTheme } from './hooks/useTheme'
 import { useFavorites } from './hooks/useFavorites'
 import { useAuth } from './hooks/useAuth'
 import AuthGuard from './components/ui/AuthGuard'
+import WorklogPanel from './components/jira/WorklogPanel'
 
 function App() {
   const { dark, toggle: toggleTheme } = useTheme()
@@ -19,6 +20,9 @@ function App() {
   const ActiveComponent = currentTool?.component
   const needsAuth = currentTool?.requiresAuth && !user
 
+  // JIRA Dashboard 활성 + 로그인 시 우측 패널 표시
+  const showRightPanel = activeTool === 'jira-dashboard' && user
+
   return (
     <Layout
       dark={dark}
@@ -30,6 +34,7 @@ function App() {
       onSearchChange={setSearch}
       onSelectTool={setActiveTool}
       onToggleFavorite={toggleFavorite}
+      rightPanel={showRightPanel ? <WorklogPanel /> : undefined}
     >
       {activeTool ? (
         <Suspense

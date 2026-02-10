@@ -8,6 +8,7 @@ interface SidebarProps {
   onSearchChange: (value: string) => void
   onSelectTool: (id: string) => void
   onToggleFavorite: (id: string) => void
+  onCollapse?: () => void
 }
 
 export default function Sidebar({
@@ -18,6 +19,7 @@ export default function Sidebar({
   onSearchChange,
   onSelectTool,
   onToggleFavorite,
+  onCollapse,
 }: SidebarProps) {
   const sorted = [...tools].sort((a, b) => a.name.localeCompare(b.name, 'ko'))
 
@@ -35,9 +37,10 @@ export default function Sidebar({
 
   return (
     <aside className="w-56 shrink-0 border-r border-gray-200 dark:border-[#2A2A2A] flex flex-col overflow-hidden bg-white dark:bg-[#171717] transition-colors duration-150">
-      {/* 검색 */}
+      {/* 검색 + 접기 */}
       <div className="p-3 pb-2">
-        <div className="relative">
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <div className="relative flex-1">
           <svg
             className="absolute left-2.5 top-1/2 -translate-y-1/2 opacity-40"
             width="14"
@@ -58,6 +61,18 @@ export default function Sidebar({
             placeholder="도구 검색..."
             className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border bg-gray-50 dark:bg-[#111111] border-gray-200 dark:border-[#2A2A2A] text-[#1A1A1A] dark:text-[#F5F5F5] focus:outline-none focus:border-dewalt transition-colors duration-150"
           />
+          </div>
+          {onCollapse && (
+            <button
+              onClick={onCollapse}
+              className="shrink-0 w-7 h-7 flex items-center justify-center rounded text-gray-400 hover:text-dewalt hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors duration-150"
+              title="사이드바 접기"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 

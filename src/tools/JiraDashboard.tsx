@@ -94,12 +94,7 @@ export default function JiraDashboard() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Worklog form
-  const [issueKey, setIssueKey] = useState('')
-  const [timeMin, setTimeMin] = useState('')
-  const [startDate, setStartDate] = useState('')
-  const [logging, setLogging] = useState(false)
-  const [logSuccess, setLogSuccess] = useState('')
+  // Worklog form moved to WorklogPanel
 
   const mm = String(month).padStart(2, '0')
   const nextMonth = getNextMonth(year, month)
@@ -158,38 +153,7 @@ export default function JiraDashboard() {
 
   useEffect(() => { loadData() }, [loadData])
 
-  // ─── Worklog Add ───
-  const handleLog = async () => {
-    if (!auth || !issueKey || !timeMin || !startDate) return
-    setLogging(true)
-    setError('')
-    setLogSuccess('')
-
-    try {
-      // YYYY.MM.DD → YYYY-MM-DD
-      const dateFormatted = startDate.replace(/\./g, '-')
-      const res = await fetch('/api/jira/worklog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          domain: auth.domain, email: auth.email, token: auth.token,
-          issueKey, timeSpentMinutes: parseInt(timeMin), startDate: dateFormatted,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Worklog 추가 실패')
-
-      setLogSuccess(`${issueKey} — ${timeMin}m logged`)
-      setIssueKey('')
-      setTimeMin('')
-      setStartDate('')
-      loadData()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Worklog 추가 실패')
-    } finally {
-      setLogging(false)
-    }
-  }
+  // Worklog add is now handled by the right-side WorklogPanel
 
   // ─── Auth Form ───
   if (!auth) {
@@ -288,38 +252,6 @@ export default function JiraDashboard() {
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Worklog quick add */}
-          <div className="flex items-center gap-1.5">
-            <input
-              type="text"
-              value={issueKey}
-              onChange={(e) => setIssueKey(e.target.value.toUpperCase())}
-              placeholder="VAN-0000"
-              className="w-24 px-2 py-1.5 rounded border-2 border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-xs font-mono focus:outline-none focus:border-dewalt transition-colors duration-150"
-            />
-            <input
-              type="number"
-              value={timeMin}
-              onChange={(e) => setTimeMin(e.target.value)}
-              placeholder="min"
-              className="w-16 px-2 py-1.5 rounded border-2 border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-xs font-mono focus:outline-none focus:border-dewalt transition-colors duration-150"
-            />
-            <input
-              type="text"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              placeholder="YYYY.MM.DD"
-              className="w-24 px-2 py-1.5 rounded border-2 border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-xs font-mono focus:outline-none focus:border-dewalt transition-colors duration-150"
-            />
-            <button
-              onClick={handleLog}
-              disabled={logging || !issueKey || !timeMin || !startDate}
-              className="px-3 py-1.5 bg-dewalt hover:bg-dewalt-hover disabled:opacity-50 text-black text-xs font-semibold rounded transition-colors duration-150"
-            >
-              {logging ? '...' : 'Log'}
-            </button>
-          </div>
-
           {/* Disconnect */}
           <button
             onClick={disconnect}
@@ -330,12 +262,7 @@ export default function JiraDashboard() {
           </button>
         </div>
 
-        {/* Success / Error */}
-        {logSuccess && (
-          <div className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/30 rounded border border-emerald-200 dark:border-emerald-900 text-sm text-emerald-600 dark:text-emerald-400">
-            {logSuccess}
-          </div>
-        )}
+        {/* Error */}
         {error && (
           <div className="px-3 py-1.5 bg-red-50 dark:bg-red-950/30 rounded border border-red-200 dark:border-red-900 text-sm text-red-600 dark:text-red-400">
             {error}
