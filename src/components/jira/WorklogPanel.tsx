@@ -56,31 +56,24 @@ export default function WorklogPanel() {
       setSearching(true)
       try {
         const q = query.trim()
-        // key 매칭이면 정확 검색, 아니면 summary 검색
-        const isKey = /^[A-Z]+-\d+$/i.test(q)
-        const jql = isKey
-          ? `key = "${q.toUpperCase()}"`
-          : `summary ~ "${q}" ORDER BY updated DESC`
 
-        const res = await fetch('/api/jira/search', {
+        // Issue picker API — 부분 키 + summary 자동완성
+        const res = await fetch('/api/jira/picker', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             domain: auth.domain,
             email: auth.email,
             token: auth.token,
-            jql,
-            fields: ['summary'],
-            maxResults: 10,
-            startAt: 0,
+            query: q,
           }),
         })
         if (res.ok) {
           const data = await res.json()
           const items: SearchResult[] = (data.issues || []).map(
-            (i: { key: string; fields: { summary: string } }) => ({
+            (i: { key: string; summary: string }) => ({
               key: i.key,
-              summary: i.fields.summary,
+              summary: i.summary,
             }),
           )
           setResults(items)

@@ -53,7 +53,7 @@ export default function Layout({
 
         {/* Sidebar */}
         <div
-          className={`shrink-0 overflow-hidden transition-all duration-200 ease-in-out ${
+          className={`shrink-0 h-full overflow-hidden transition-all duration-200 ease-in-out ${
             sidebarOpen ? 'w-56' : 'w-0'
           }`}
         >

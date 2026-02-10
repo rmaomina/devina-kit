@@ -13,7 +13,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const auth = Buffer.from(`${email}:${token}`).toString('base64')
-    const response = await fetch(`https://${domain}/rest/api/3/search/jql`, {
+
+    // v2 search API (POST, 안정적) — v3/search는 deprecated, v3/search/jql은 GET 전환 이슈
+    const response = await fetch(`https://${domain}/rest/api/2/search`, {
       method: 'POST',
       headers: {
         Authorization: `Basic ${auth}`,
@@ -25,7 +27,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         fields: fields || [
           'summary', 'status', 'project', 'issuetype',
           'timespent', 'resolutiondate', 'updated',
-          'customfield_10020', // sprint
         ],
         maxResults,
         startAt,
