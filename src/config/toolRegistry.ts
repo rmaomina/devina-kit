@@ -6,6 +6,7 @@ export interface Tool {
   name: string
   keywords: string[]
   component: React.LazyExoticComponent<ComponentType>
+  requiresAuth?: boolean
 }
 
 // 도구 등록: 한글 가나다순으로 사이드바에 표시됨
@@ -57,5 +58,6 @@ export const tools: Tool[] = [
     name: 'JIRA Dashboard',
     keywords: ['jira', 'worklog', 'dashboard', '지라', '대시보드', '공수'],
     component: lazy(() => import('../tools/JiraDashboard')),
+    requiresAuth: true,
   },
 ]

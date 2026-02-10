@@ -3,15 +3,19 @@ import Layout from './components/layout/Layout'
 import { tools } from './config/toolRegistry'
 import { useTheme } from './hooks/useTheme'
 import { useFavorites } from './hooks/useFavorites'
+import { useAuth } from './hooks/useAuth'
+import AuthGuard from './components/ui/AuthGuard'
 
 function App() {
   const { dark, toggle: toggleTheme } = useTheme()
   const { favorites, toggle: toggleFavorite } = useFavorites()
+  const { user } = useAuth()
   const [activeTool, setActiveTool] = useState(tools[0].id)
   const [search, setSearch] = useState('')
 
   const currentTool = tools.find((t) => t.id === activeTool)
   const ActiveComponent = currentTool?.component
+  const needsAuth = currentTool?.requiresAuth && !user
 
   return (
     <Layout
@@ -32,7 +36,9 @@ function App() {
           </div>
         }
       >
-        {ActiveComponent && <ActiveComponent />}
+        {ActiveComponent && (
+          needsAuth ? <AuthGuard><ActiveComponent /></AuthGuard> : <ActiveComponent />
+        )}
       </Suspense>
     </Layout>
   )
