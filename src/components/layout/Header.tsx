@@ -32,7 +32,7 @@ function formatTime(date: Date): string {
 
 export default function Header({ dark, onToggleTheme }: HeaderProps) {
   const [time, setTime] = useState(() => formatTime(new Date()))
-  const { user, signInGithub, signInGoogle, signOut } = useAuth()
+  const { user, configured, signInGithub, signInGoogle, signOut } = useAuth()
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -77,6 +77,7 @@ export default function Header({ dark, onToggleTheme }: HeaderProps) {
         </button>
 
         {/* Auth */}
+        {configured && (
         <div className="relative" ref={menuRef}>
           {user ? (
             <button
@@ -137,6 +138,7 @@ export default function Header({ dark, onToggleTheme }: HeaderProps) {
             </div>
           )}
         </div>
+        )}
       </div>
     </header>
   )
