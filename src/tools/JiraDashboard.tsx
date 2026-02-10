@@ -220,7 +220,10 @@ export default function JiraDashboard() {
             <p className="text-sm text-red-500">{authError}</p>
           )}
           <button
-            onClick={() => connect(domain, email, token)}
+            onClick={() => {
+              const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/+$/, '')
+              connect(cleanDomain, email, token)
+            }}
             disabled={authLoading || !domain || !email || !token}
             className="w-full px-4 py-2 bg-dewalt hover:bg-dewalt-hover disabled:opacity-50 text-black text-sm font-semibold rounded transition-colors duration-150"
           >
