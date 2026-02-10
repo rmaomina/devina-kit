@@ -141,16 +141,18 @@ interface SidebarItemProps {
 function SidebarItem({ tool, active, fav, onSelect, onToggleFav }: SidebarItemProps) {
   return (
     <div
-      className={`group flex items-center gap-1 rounded-md mx-1 cursor-pointer transition-colors duration-100 ${
+      className={`group flex items-center gap-1 rounded-md mx-1 cursor-pointer transition-colors duration-150 ${
         active
-          ? 'bg-amber-50 dark:bg-[#1C1A0F] border-l-3 border-l-dewalt'
-          : 'border-l-3 border-l-transparent'
+          ? 'bg-dewalt/15 dark:bg-dewalt/10 border-l-3 border-l-dewalt'
+          : 'border-l-3 border-l-transparent hover:bg-gray-100 dark:hover:bg-white/5'
       }`}
     >
       <button
         onClick={onSelect}
-        className={`flex-1 text-left px-2 py-1.5 text-xs truncate hover:opacity-80 ${
-          active ? 'font-semibold' : 'font-normal'
+        className={`flex-1 text-left px-2 py-1.5 text-xs truncate ${
+          active
+            ? 'font-semibold text-dewalt-hover dark:text-dewalt'
+            : 'font-normal'
         }`}
       >
         {tool.name}
@@ -160,11 +162,24 @@ function SidebarItem({ tool, active, fav, onSelect, onToggleFav }: SidebarItemPr
           e.stopPropagation()
           onToggleFav()
         }}
-        className={`px-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-xs ${
-          fav ? 'text-dewalt' : 'text-gray-400'
+        className={`px-1.5 transition-opacity text-xs ${
+          fav
+            ? 'opacity-100 text-dewalt'
+            : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
         }`}
+        title={fav ? '즐겨찾기 해제' : '즐겨찾기'}
       >
-        {fav ? '\u2605' : '\u2606'}
+        {fav ? (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1">
+            <path d="M12 2C12 2 12 12 12 17L6 21L8 14L2 9H9L12 2Z" />
+            <path d="M12 2C12 2 12 12 12 17L18 21L16 14L22 9H15L12 2Z" />
+          </svg>
+        ) : (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="12" y1="3" x2="12" y2="15" />
+            <circle cx="12" cy="3" r="2" />
+          </svg>
+        )}
       </button>
     </div>
   )

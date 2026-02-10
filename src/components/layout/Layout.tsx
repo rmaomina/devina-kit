@@ -49,7 +49,14 @@ export default function Layout({
       </div>
 
       <footer className="h-8 flex items-center justify-center text-xs shrink-0 border-t border-gray-200 dark:border-[#2A2A2A] text-gray-500 dark:text-gray-400 transition-colors duration-150">
-        devina-kit
+        <a
+          href="https://github.com/rmaomina/devina-kit"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-dewalt transition-colors duration-150"
+        >
+          devina-kit
+        </a>
       </footer>
     </div>
   )
