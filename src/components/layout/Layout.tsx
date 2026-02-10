@@ -48,7 +48,7 @@ export default function Layout({
         </main>
       </div>
 
-      <footer className="h-8 flex items-center justify-center text-xs shrink-0 border-t border-gray-200 dark:border-[#2A2A2A] text-gray-500 dark:text-gray-400 transition-colors duration-150">
+      <footer className="h-8 flex items-center justify-center gap-2 text-xs shrink-0 border-t border-gray-200 dark:border-[#2A2A2A] text-gray-500 dark:text-gray-400 transition-colors duration-150">
         <a
           href="https://github.com/rmaomina/devina-kit"
           target="_blank"
@@ -57,6 +57,10 @@ export default function Layout({
         >
           devina-kit
         </a>
+        <span className="text-gray-300 dark:text-gray-600">·</span>
+        <span className="text-[10px] font-semibold tracking-widest uppercase text-dewalt">
+          ad-free
+        </span>
       </footer>
     </div>
   )
