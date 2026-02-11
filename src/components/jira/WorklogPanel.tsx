@@ -149,7 +149,11 @@ export default function WorklogPanel() {
     setLogSuccess('')
 
     try {
-      const dateFormatted = startDate.replace(/\./g, '-')
+      // 다양한 날짜 포맷 처리: 20260209 → 2026-02-09, 2026.02.09 → 2026-02-09
+      let dateFormatted = startDate.replace(/\./g, '-')
+      if (/^\d{8}$/.test(dateFormatted)) {
+        dateFormatted = `${dateFormatted.slice(0, 4)}-${dateFormatted.slice(4, 6)}-${dateFormatted.slice(6, 8)}`
+      }
       const res = await fetch('/api/jira/worklog', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

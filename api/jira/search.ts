@@ -5,7 +5,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'POST only' })
   }
 
-  const { domain, email, token, jql, fields, maxResults = 100, startAt = 0 } = req.body || {}
+  const { domain, email, token, jql, fields, maxResults = 100, nextPageToken } = req.body || {}
 
   if (!domain || !email || !token || !jql) {
     return res.status(400).json({ error: 'domain, email, token, jql 필수' })
@@ -14,23 +14,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const auth = Buffer.from(`${email}:${token}`).toString('base64')
 
-    // v2 search API (POST, 안정적) — v3/search는 deprecated, v3/search/jql은 GET 전환 이슈
-    const response = await fetch(`https://${domain}/rest/api/2/search`, {
+    // v3/search/jql POST — startAt 제거, nextPageToken 사용
+    const body: Record<string, unknown> = {
+      jql,
+      fields: fields || [
+        'summary', 'status', 'project', 'issuetype',
+        'timespent', 'resolutiondate', 'updated',
+      ],
+      maxResults,
+    }
+    // nextPageToken은 첫 페이지에서 생략해야 함 (null 전송 시 에러)
+    if (nextPageToken) {
+      body.nextPageToken = nextPageToken
+    }
+
+    const response = await fetch(`https://${domain}/rest/api/3/search/jql`, {
       method: 'POST',
       headers: {
         Authorization: `Basic ${auth}`,
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
-      body: JSON.stringify({
-        jql,
-        fields: fields || [
-          'summary', 'status', 'project', 'issuetype',
-          'timespent', 'resolutiondate', 'updated',
-        ],
-        maxResults,
-        startAt,
-      }),
+      body: JSON.stringify(body),
     })
 
     const data = await response.json()

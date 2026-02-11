@@ -46,31 +46,37 @@ const normalizeStatus = (s: string): string => {
 const getNextMonth = (y: number, m: number) =>
   m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, '0')}-01`
 
-// ─── JIRA Fetch (with pagination) ───
+// ─── JIRA Fetch (nextPageToken pagination) ───
 async function fetchJira(
   domain: string, email: string, token: string, jql: string
 ): Promise<JiraIssue[]> {
   const all: JiraIssue[] = []
-  let startAt = 0
+  let nextPageToken: string | undefined = undefined
+  let safety = 0
 
-  while (true) {
+  while (safety++ < 50) {
+    const body: Record<string, unknown> = {
+      domain, email, token, jql,
+      fields: ['summary', 'status', 'project', 'timespent', 'resolutiondate'],
+      maxResults: 100,
+    }
+    if (nextPageToken) body.nextPageToken = nextPageToken
+
     const res = await fetch('/api/jira/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        domain, email, token, jql,
-        fields: ['summary', 'status', 'project', 'timespent', 'resolutiondate'],
-        maxResults: 100, startAt,
-      }),
+      body: JSON.stringify(body),
     })
     if (!res.ok) {
       const data = await res.json()
       throw new Error(data.error || 'JIRA API error')
     }
     const data = await res.json()
-    all.push(...data.issues)
-    if (startAt + data.maxResults >= data.total) break
-    startAt += data.maxResults
+    all.push(...(data.issues || []))
+
+    // nextPageToken 기반 페이지네이션
+    if (data.isLast || !data.nextPageToken) break
+    nextPageToken = data.nextPageToken
   }
   return all
 }
