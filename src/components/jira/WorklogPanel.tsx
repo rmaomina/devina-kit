@@ -28,6 +28,7 @@ export default function WorklogPanel() {
   const [results, setResults] = useState<SearchResult[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
   const [searching, setSearching] = useState(false)
+  const [searchError, setSearchError] = useState('')
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
 
@@ -54,6 +55,7 @@ export default function WorklogPanel() {
 
     timerRef.current = setTimeout(async () => {
       setSearching(true)
+      setSearchError('')
       try {
         const q = query.trim()
 
@@ -68,19 +70,26 @@ export default function WorklogPanel() {
             query: q,
           }),
         })
-        if (res.ok) {
-          const data = await res.json()
-          const items: SearchResult[] = (data.issues || []).map(
-            (i: { key: string; summary: string }) => ({
-              key: i.key,
-              summary: i.summary,
-            }),
-          )
-          setResults(items)
-          setShowDropdown(items.length > 0)
+        const data = await res.json()
+        if (!res.ok) {
+          setSearchError(data.error || `티켓 검색 실패 (HTTP ${res.status})`)
+          setResults([])
+          setShowDropdown(false)
+          return
         }
-      } catch {
-        // silent
+        const items: SearchResult[] = (data.issues || []).map(
+          (i: { key: string; summary: string }) => ({
+            key: i.key,
+            summary: i.summary,
+          }),
+        )
+        setResults(items)
+        setShowDropdown(items.length > 0)
+        if (items.length === 0) setSearchError('검색 결과가 없습니다')
+      } catch (e) {
+        setSearchError(e instanceof Error ? e.message : '서버에 연결할 수 없습니다')
+        setResults([])
+        setShowDropdown(false)
       } finally {
         setSearching(false)
       }
@@ -118,12 +127,16 @@ export default function WorklogPanel() {
             issueKey,
           }),
         })
-        if (res.ok) {
-          const data = await res.json()
-          setWorklogs(data.worklogs || [])
+        const data = await res.json()
+        if (!res.ok) {
+          setLogError(data.error || `Worklog 조회 실패 (HTTP ${res.status})`)
+          setWorklogs([])
+          return
         }
-      } catch {
-        // silent
+        setWorklogs(data.worklogs || [])
+      } catch (e) {
+        setLogError(e instanceof Error ? e.message : 'Worklog 조회 실패')
+        setWorklogs([])
       } finally {
         setLoadingLogs(false)
       }
@@ -218,6 +231,9 @@ export default function WorklogPanel() {
           )}
 
           {/* Dropdown */}
+          {searchError && !showDropdown && (
+            <p className="mt-1.5 text-[11px] text-red-500">{searchError}</p>
+          )}
           {showDropdown && (
             <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-lg max-h-60 overflow-y-auto">
               {results.map((r) => (
