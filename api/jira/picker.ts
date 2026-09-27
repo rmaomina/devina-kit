@@ -43,10 +43,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const data = await response.json()
     if (!response.ok) {
-      // 존재하지 않는 키를 key= 로 조회하면 JQL 오류가 난다 — 검색 0건으로 처리
-      if (ISSUE_KEY.test(q)) return res.status(200).json({ issues: [] })
+      // 없는 키를 key= 로 조회하면 JQL 오류(400)가 난다 — 이때만 0건으로 처리.
+      // 401/403/5xx까지 삼키면 인증 실패가 '검색 결과 없음'으로 둔갑한다.
+      if (response.status === 400 && ISSUE_KEY.test(q)) {
+        return res.status(200).json({ issues: [] })
+      }
       return res.status(response.status).json({
-        error: data.errorMessages?.[0] || '티켓 검색 실패',
+        error: data.errorMessages?.[0] || `티켓 검색 실패 (HTTP ${response.status})`,
       })
     }
 
