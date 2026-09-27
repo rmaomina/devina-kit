@@ -83,7 +83,7 @@ async function fetchJira(
 
 // ─── Component ───
 export default function JiraDashboard() {
-  const { auth, loading: authLoading, error: authError, remembered, connect, disconnect } = useJiraAuth()
+  const { auth, loading: authLoading, error: authError, remembered, tokenInvalid, connect, disconnect } = useJiraAuth()
 
   // Auth form
   const [domain, setDomain] = useState('')
@@ -267,6 +267,16 @@ export default function JiraDashboard() {
             Disconnect
           </button>
         </div>
+
+        {/* 토큰 검증 실패 — JIRA 검색 API는 인증 실패에도 200/빈 결과를 주므로 명시 안내 */}
+        {tokenInvalid && (
+          <div className="px-3 py-2 bg-amber-50 dark:bg-amber-950/30 rounded border border-amber-300 dark:border-amber-800 text-sm text-amber-700 dark:text-amber-400">
+            JIRA 토큰이 만료되었거나 권한이 없습니다. Disconnect 후 새 토큰으로 다시 연결해주세요.
+            <span className="block text-xs mt-1 opacity-80">
+              검색 API는 인증에 실패해도 오류 대신 빈 결과를 돌려주기 때문에, 데이터가 0으로 보입니다.
+            </span>
+          </div>
+        )}
 
         {/* Error */}
         {error && (

@@ -26,6 +26,32 @@ export function useJiraAuth() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [remembered, setRemembered] = useState(false)
+  const [tokenInvalid, setTokenInvalid] = useState(false)
+
+  // 저장된 토큰은 만료돼도 displayName이 그대로 보여 정상처럼 착각하게 된다.
+  // 게다가 JIRA의 /search/jql·issue/picker는 인증 실패에도 200 + 빈 결과를
+  // 돌려주므로(myself만 401), 로드 시 myself로 한 번 검증해야 한다.
+  useEffect(() => {
+    if (!auth) {
+      setTokenInvalid(false)
+      return
+    }
+    let cancelled = false
+    fetch('/api/jira/myself', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain: auth.domain, email: auth.email, token: auth.token }),
+    })
+      .then((res) => {
+        if (!cancelled) setTokenInvalid(!res.ok)
+      })
+      .catch(() => {
+        // 네트워크 오류는 토큰 문제로 단정하지 않는다
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [auth])
 
   // 로그인 시 Supabase에서 JIRA 설정 자동 로드
   useEffect(() => {
@@ -106,5 +132,5 @@ export function useJiraAuth() {
     }
   }, [user])
 
-  return { auth, loading, error, remembered, connect, disconnect }
+  return { auth, loading, error, remembered, tokenInvalid, connect, disconnect }
 }
