@@ -22,7 +22,7 @@ function formatMin(sec: number): string {
 }
 
 export default function WorklogPanel() {
-  const { auth } = useJiraAuth()
+  const { auth, bumpDataVersion } = useJiraAuth()
 
   // Search
   const [query, setQuery] = useState('')
@@ -186,6 +186,7 @@ export default function WorklogPanel() {
       if (!res.ok) throw new Error(data.error || 'Worklog 추가 실패')
 
       setLogSuccess(`${selected.key} — ${timeMin}m logged`)
+      bumpDataVersion() // 대시보드 캐시 무효화 → 자동 갱신
       setTimeMin('')
       setStartDate('')
       setDescription('')

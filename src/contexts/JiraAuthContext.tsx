@@ -29,6 +29,9 @@ export interface JiraAuthContextType {
   remembered: boolean
   tokenInvalid: boolean
   accountId: string | null
+  /** worklog 입력 등으로 JIRA 데이터가 바뀌었을 때 올린다. 대시보드가 이 값을 보고 캐시를 버린다. */
+  dataVersion: number
+  bumpDataVersion: () => void
   connect: (domain: string, email: string, token: string, rememberMe?: boolean) => Promise<boolean>
   disconnect: () => Promise<void>
 }
@@ -44,6 +47,8 @@ export function JiraAuthProvider({ children }: { children: ReactNode }) {
   const [tokenInvalid, setTokenInvalid] = useState(false)
   // 본인 worklog만 골라내려면 accountId가 필요하다. myself 검증 응답에서 받아둔다.
   const [accountId, setAccountId] = useState<string | null>(null)
+  const [dataVersion, setDataVersion] = useState(0)
+  const bumpDataVersion = useCallback(() => setDataVersion((v) => v + 1), [])
 
   // 저장된 토큰은 만료돼도 displayName이 그대로 보여 정상처럼 착각하게 된다.
   // 게다가 JIRA의 /search/jql·issue/picker는 인증 실패에도 200 + 빈 결과를
@@ -157,7 +162,7 @@ export function JiraAuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <JiraAuthContext.Provider
-      value={{ auth, loading, error, remembered, tokenInvalid, accountId, connect, disconnect }}
+      value={{ auth, loading, error, remembered, tokenInvalid, accountId, dataVersion, bumpDataVersion, connect, disconnect }}
     >
       {children}
     </JiraAuthContext.Provider>

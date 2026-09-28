@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
@@ -6,6 +6,7 @@ import {
 import ToolCard from '../components/ui/ToolCard'
 import IssueLink from '../components/jira/IssueLink'
 import { useJiraAuth } from '../hooks/useJiraAuth'
+import { cacheKey, readCache, writeCache, dropCache, formatAge } from '../lib/dashboardCache'
 
 // ─── Types ───
 interface JiraIssue {
@@ -22,6 +23,14 @@ interface JiraIssue {
 interface ProjectWorklog { project: string; hours: number }
 interface StatusCount { status: string; count: number }
 interface ClosedTicket { key: string; summary: string; status: string; resolved: string }
+
+interface Snapshot {
+  projectData: ProjectWorklog[]
+  statusData: StatusCount[]
+  recentClosings: ClosedTicket[]
+}
+
+const TTL_MS = 10 * 60 * 1000 // 이 시간 안이면 재조회하지 않는다
 
 // ─── Constants ───
 const COLORS = {
@@ -125,7 +134,7 @@ async function fetchMyMonthlySeconds(
 
 // ─── Component ───
 export default function JiraDashboard() {
-  const { auth, loading: authLoading, error: authError, remembered, tokenInvalid, accountId, connect, disconnect } = useJiraAuth()
+  const { auth, loading: authLoading, error: authError, remembered, tokenInvalid, accountId, dataVersion, connect, disconnect } = useJiraAuth()
 
   // Auth form
   const [domain, setDomain] = useState('')
@@ -139,7 +148,9 @@ export default function JiraDashboard() {
   const [projectData, setProjectData] = useState<ProjectWorklog[]>([])
   const [statusData, setStatusData] = useState<StatusCount[]>([])
   const [recentClosings, setRecentClosings] = useState<ClosedTicket[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false)   // 캐시가 없을 때의 최초 로딩 (화면을 덮음)
+  const [syncing, setSyncing] = useState(false)   // 캐시를 띄운 채 뒤에서 갱신
+  const [fetchedAt, setFetchedAt] = useState<number | null>(null)
   const [error, setError] = useState('')
 
   // Worklog form moved to WorklogPanel
@@ -148,9 +159,10 @@ export default function JiraDashboard() {
   const nextMonth = getNextMonth(year, month)
 
   // ─── Data Fetch ───
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (background = false) => {
     if (!auth) return
-    setLoading(true)
+    if (background) setSyncing(true)
+    else setLoading(true)
     setError('')
 
     try {
@@ -201,17 +213,65 @@ export default function JiraDashboard() {
       setStatusData(
         Array.from(sMap, ([status, count]) => ({ status, count })).sort((a, b) => b.count - a.count)
       )
-      setRecentClosings(
-        tickets.sort((a, b) => new Date(b.resolved).getTime() - new Date(a.resolved).getTime())
+      const nextProjects = Array.from(pMap, ([project, hours]) => ({
+        project,
+        hours: Math.round(hours * 10) / 10,
+      })).sort((a, b) => b.hours - a.hours)
+      const nextStatus = Array.from(sMap, ([status, count]) => ({ status, count })).sort(
+        (a, b) => b.count - a.count,
       )
+      const nextClosings = tickets.sort(
+        (a, b) => new Date(b.resolved).getTime() - new Date(a.resolved).getTime(),
+      )
+
+      setRecentClosings(nextClosings)
+
+      // 조회에 성공한 경우에만 캐시를 덮는다 (실패 시 이전 캐시 유지)
+      const snapshot: Snapshot = {
+        projectData: nextProjects,
+        statusData: nextStatus,
+        recentClosings: nextClosings,
+      }
+      setFetchedAt(writeCache(cacheKey(auth.domain, auth.email, year, mm), snapshot))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data')
     } finally {
       setLoading(false)
+      setSyncing(false)
     }
   }, [auth, accountId, year, mm, nextMonth])
 
-  useEffect(() => { loadData() }, [loadData])
+  // 캐시 우선 표시 → TTL이 지났을 때만 뒤에서 갱신.
+  // worklog를 입력하면 dataVersion이 올라가 캐시를 버리고 즉시 다시 받는다.
+  const seenVersion = useRef(dataVersion)
+  useEffect(() => {
+    if (!auth) return
+    const key = cacheKey(auth.domain, auth.email, year, mm)
+
+    const invalidated = seenVersion.current !== dataVersion
+    seenVersion.current = dataVersion
+    if (invalidated) dropCache(key)
+
+    const cached = invalidated ? null : readCache<Snapshot>(key)
+    if (cached) {
+      setProjectData(cached.data.projectData)
+      setStatusData(cached.data.statusData)
+      setRecentClosings(cached.data.recentClosings)
+      setFetchedAt(cached.fetchedAt)
+    } else {
+      setProjectData([])
+      setStatusData([])
+      setRecentClosings([])
+      setFetchedAt(null)
+    }
+
+    // accountId는 토큰 검증 응답에서 오므로, 도착 전에는 조회하지 않는다
+    if (!accountId) return
+    if (!cached) loadData(false)
+    else if (Date.now() - cached.fetchedAt >= TTL_MS) loadData(true)
+    // loadData는 아래 deps와 같은 값으로 만들어지므로 의존성에 넣지 않는다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth, accountId, year, mm, dataVersion])
 
   // Worklog add is now handled by the right-side WorklogPanel
 
@@ -312,6 +372,21 @@ export default function JiraDashboard() {
           {/* Spacer */}
           <div className="flex-1" />
 
+          {/* Sync */}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-gray-400 dark:text-gray-500 font-mono">
+              {syncing ? '동기화 중...' : fetchedAt ? formatAge(fetchedAt) : '동기화 안 됨'}
+            </span>
+            <button
+              onClick={() => loadData(true)}
+              disabled={loading || syncing || !accountId}
+              title="JIRA에서 다시 받아옵니다"
+              className="px-2.5 py-1.5 text-xs font-semibold rounded border-2 border-gray-200 dark:border-neutral-700 hover:border-dewalt disabled:opacity-40 transition-colors duration-150"
+            >
+              {syncing ? '...' : 'Sync'}
+            </button>
+          </div>
+
           {/* Disconnect */}
           <button
             onClick={disconnect}
@@ -336,7 +411,7 @@ export default function JiraDashboard() {
           </div>
         )}
 
-        {/* Loading */}
+        {/* Loading — 캐시가 없을 때만 화면을 덮는다. 갱신 중에는 기존 화면 유지 */}
         {loading && (
           <div className="py-12 text-center text-gray-400 dark:text-gray-500 font-mono text-sm">
             Loading {year}.{mm} data...
