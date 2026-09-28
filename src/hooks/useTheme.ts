@@ -1,23 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useContext } from 'react'
+import { ThemeContext } from '../contexts/ThemeContext'
+import type { ThemeContextType } from '../contexts/ThemeContext'
 
-export function useTheme() {
-  const [dark, setDark] = useState(() => {
-    const saved = localStorage.getItem('devina-kit-theme')
-    if (saved) return saved === 'dark'
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-  })
-
-  useEffect(() => {
-    const root = document.documentElement
-    if (dark) {
-      root.classList.add('dark')
-    } else {
-      root.classList.remove('dark')
-    }
-    localStorage.setItem('devina-kit-theme', dark ? 'dark' : 'light')
-  }, [dark])
-
-  const toggle = () => setDark((d) => !d)
-
-  return { dark, toggle }
+export function useTheme(): ThemeContextType {
+  const ctx = useContext(ThemeContext)
+  if (!ctx) throw new Error('useTheme must be used within ThemeProvider')
+  return ctx
 }

@@ -268,13 +268,10 @@ export default function JiraDashboard() {
           </button>
         </div>
 
-        {/* 토큰 검증 실패 — JIRA 검색 API는 인증 실패에도 200/빈 결과를 주므로 명시 안내 */}
+        {/* 토큰 검증 실패 — 갱신 폼은 설정 메뉴 하나로 유지 */}
         {tokenInvalid && (
           <div className="px-3 py-2 bg-amber-50 dark:bg-amber-950/30 rounded border border-amber-300 dark:border-amber-800 text-sm text-amber-700 dark:text-amber-400">
-            JIRA 토큰이 만료되었거나 권한이 없습니다. Disconnect 후 새 토큰으로 다시 연결해주세요.
-            <span className="block text-xs mt-1 opacity-80">
-              검색 API는 인증에 실패해도 오류 대신 빈 결과를 돌려주기 때문에, 데이터가 0으로 보입니다.
-            </span>
+            JIRA 토큰이 만료되었거나 권한이 없습니다. <strong>설정 → 계정 → JIRA 토큰 관리</strong>에서 새 토큰으로 교체해주세요.
           </div>
         )}
 
