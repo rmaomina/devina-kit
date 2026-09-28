@@ -19,9 +19,9 @@ export const tools: Tool[] = [
   },
   {
     id: 'qr-decoder',
-    name: 'QR 디코딩',
-    keywords: ['qr', 'decode', '큐알', '디코딩'],
-    component: lazy(() => import('../tools/QRDecoder')),
+    name: 'QR 인코딩/디코딩',
+    keywords: ['qr', 'encode', 'decode', '큐알', '인코딩', '디코딩', '생성', 'qr코드'],
+    component: lazy(() => import('../tools/QRCodeTool')),
   },
   {
     id: 'url-decoder',
