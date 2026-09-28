@@ -1,5 +1,18 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 
+// 줄바꿈은 ADF 문단으로 나눈다. text 노드 안에 개행을 넣으면 JIRA가 거부한다.
+function toAdf(text: string) {
+  return {
+    type: 'doc',
+    version: 1,
+    content: text.split('\n').map((line) =>
+      line.trim()
+        ? { type: 'paragraph', content: [{ type: 'text', text: line }] }
+        : { type: 'paragraph' },
+    ),
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { domain, email, token } = req.body || {}
 
@@ -17,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     // POST: worklog 추가
     if (req.method === 'POST') {
-      const { issueKey, timeSpentMinutes, startDate } = req.body
+      const { issueKey, timeSpentMinutes, startDate, comment } = req.body
 
       if (!issueKey || !timeSpentMinutes || !startDate) {
         return res.status(400).json({ error: 'issueKey, timeSpentMinutes, startDate 필수' })
@@ -31,6 +44,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           body: JSON.stringify({
             timeSpentSeconds: timeSpentMinutes * 60,
             started: `${startDate}T09:00:00.000+0900`,
+            ...(typeof comment === 'string' && comment.trim()
+              ? { comment: toAdf(comment.trim()) }
+              : {}),
           }),
         }
       )

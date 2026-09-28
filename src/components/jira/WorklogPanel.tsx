@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useJiraAuth } from '../../hooks/useJiraAuth'
+import IssueLink from './IssueLink'
 
 interface SearchResult {
   key: string
@@ -40,6 +41,7 @@ export default function WorklogPanel() {
   // Log form
   const [timeMin, setTimeMin] = useState('')
   const [startDate, setStartDate] = useState('')
+  const [description, setDescription] = useState('')
   const [logging, setLogging] = useState(false)
   const [logSuccess, setLogSuccess] = useState('')
   const [logError, setLogError] = useState('')
@@ -177,6 +179,7 @@ export default function WorklogPanel() {
           issueKey: selected.key,
           timeSpentMinutes: parseInt(timeMin),
           startDate: dateFormatted,
+          comment: description,
         }),
       })
       const data = await res.json()
@@ -185,6 +188,7 @@ export default function WorklogPanel() {
       setLogSuccess(`${selected.key} — ${timeMin}m logged`)
       setTimeMin('')
       setStartDate('')
+      setDescription('')
       // refresh worklogs
       fetchWorklogs(selected.key)
     } catch (e) {
@@ -237,18 +241,22 @@ export default function WorklogPanel() {
           {showDropdown && (
             <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-lg max-h-60 overflow-y-auto">
               {results.map((r) => (
-                <button
+                <div
                   key={r.key}
-                  onClick={() => handleSelect(r)}
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors duration-100"
+                  className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors duration-100"
                 >
-                  <span className="text-xs font-mono font-semibold text-dewalt">
-                    {r.key}
-                  </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 truncate">
+                  <IssueLink
+                    issueKey={r.key}
+                    className="text-xs font-mono font-semibold text-dewalt shrink-0"
+                  />
+                  <button
+                    onClick={() => handleSelect(r)}
+                    className="flex-1 min-w-0 text-left text-xs text-gray-500 dark:text-gray-400 truncate"
+                    title="이 티켓 선택"
+                  >
                     {r.summary}
-                  </span>
-                </button>
+                  </button>
+                </div>
               ))}
             </div>
           )}
@@ -259,7 +267,7 @@ export default function WorklogPanel() {
       {selected && (
         <div className="px-4 py-2 border-t border-gray-100 dark:border-neutral-800">
           <div className="text-xs font-mono font-semibold text-dewalt">
-            {selected.key}
+            <IssueLink issueKey={selected.key} />
           </div>
           <div className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-0.5">
             {selected.summary}
@@ -324,6 +332,15 @@ export default function WorklogPanel() {
               placeholder="YYYY.MM.DD"
               className="flex-1 px-2 py-1.5 rounded border-2 border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-xs font-mono focus:outline-none focus:border-dewalt transition-colors duration-150"
             />
+          </div>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="작업 내용 (선택) — 여러 줄 입력 가능"
+            rows={3}
+            className="w-full px-2 py-1.5 rounded border-2 border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-xs resize-y focus:outline-none focus:border-dewalt transition-colors duration-150"
+          />
+          <div className="flex justify-end">
             <button
               onClick={handleLog}
               disabled={logging || !timeMin || !startDate}

@@ -28,6 +28,7 @@ export interface JiraAuthContextType {
   error: string
   remembered: boolean
   tokenInvalid: boolean
+  accountId: string | null
   connect: (domain: string, email: string, token: string, rememberMe?: boolean) => Promise<boolean>
   disconnect: () => Promise<void>
 }
@@ -41,6 +42,8 @@ export function JiraAuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState('')
   const [remembered, setRemembered] = useState(false)
   const [tokenInvalid, setTokenInvalid] = useState(false)
+  // 본인 worklog만 골라내려면 accountId가 필요하다. myself 검증 응답에서 받아둔다.
+  const [accountId, setAccountId] = useState<string | null>(null)
 
   // 저장된 토큰은 만료돼도 displayName이 그대로 보여 정상처럼 착각하게 된다.
   // 게다가 JIRA의 /search/jql·issue/picker는 인증 실패에도 200 + 빈 결과를
@@ -48,6 +51,7 @@ export function JiraAuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!auth) {
       setTokenInvalid(false)
+      setAccountId(null)
       return
     }
     let cancelled = false
@@ -56,8 +60,13 @@ export function JiraAuthProvider({ children }: { children: ReactNode }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ domain: auth.domain, email: auth.email, token: auth.token }),
     })
-      .then((res) => {
-        if (!cancelled) setTokenInvalid(!res.ok)
+      .then(async (res) => {
+        if (cancelled) return
+        setTokenInvalid(!res.ok)
+        if (res.ok) {
+          const data = await res.json()
+          if (!cancelled) setAccountId(data.accountId ?? null)
+        }
       })
       .catch(() => {
         // 네트워크 오류는 토큰 문제로 단정하지 않는다
@@ -148,7 +157,7 @@ export function JiraAuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <JiraAuthContext.Provider
-      value={{ auth, loading, error, remembered, tokenInvalid, connect, disconnect }}
+      value={{ auth, loading, error, remembered, tokenInvalid, accountId, connect, disconnect }}
     >
       {children}
     </JiraAuthContext.Provider>

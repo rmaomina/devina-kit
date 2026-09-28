@@ -4,7 +4,7 @@ import {
   Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
 import ToolCard from '../components/ui/ToolCard'
-import CopyButton from '../components/ui/CopyButton'
+import IssueLink from '../components/jira/IssueLink'
 import { useJiraAuth } from '../hooks/useJiraAuth'
 
 // ─── Types ───
@@ -81,9 +81,51 @@ async function fetchJira(
   return all
 }
 
+// 동시 요청 제한 — 이슈 수만큼 호출하므로 JIRA rate limit을 피한다
+async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length)
+  let next = 0
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (next < items.length) {
+        const i = next++
+        out[i] = await fn(items[i])
+      }
+    }),
+  )
+  return out
+}
+
+interface WorklogEntry {
+  started?: string
+  timeSpentSeconds?: number
+  author?: { accountId?: string }
+}
+
+// fields.timespent는 '그 이슈에 모든 사람이 평생 기록한 총합'이라 월별 공수로 쓸 수 없다.
+// 이슈별 worklog를 받아 해당 월 + 본인 것만 합산한다.
+async function fetchMyMonthlySeconds(
+  domain: string, email: string, token: string,
+  issueKey: string, accountId: string, from: string, to: string,
+): Promise<number> {
+  const res = await fetch('/api/jira/issue-worklogs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ domain, email, token, issueKey }),
+  })
+  if (!res.ok) return 0
+  const data = await res.json()
+  return (data.worklogs || []).reduce((sum: number, w: WorklogEntry) => {
+    if (w.author?.accountId !== accountId) return sum
+    const day = (w.started || '').slice(0, 10)
+    if (day < from || day >= to) return sum
+    return sum + (w.timeSpentSeconds || 0)
+  }, 0)
+}
+
 // ─── Component ───
 export default function JiraDashboard() {
-  const { auth, loading: authLoading, error: authError, remembered, tokenInvalid, connect, disconnect } = useJiraAuth()
+  const { auth, loading: authLoading, error: authError, remembered, tokenInvalid, accountId, connect, disconnect } = useJiraAuth()
 
   // Auth form
   const [domain, setDomain] = useState('')
@@ -113,18 +155,30 @@ export default function JiraDashboard() {
 
     try {
       const worklogJql = `worklogDate >= "${year}-${mm}-01" AND worklogDate < "${nextMonth}" AND worklogAuthor = currentUser()`
-      const closedJql = `resolved >= "${year}-${mm}-01" AND resolved < "${nextMonth}" AND assignee = currentUser() AND status in (Done, "QA Done", "QA DONE", "Deployment Done")`
+      // '내가 직접 닫은 상위 티켓'만 센다.
+      // assignee 기준은 남이 닫아준 것까지 잡히고, 하위업무는 상위 하나에 여러 건이 딸려 과대 집계된다.
+      const closedJql =
+        `status changed to (Done, "QA Done", "Deployment Done") by currentUser() ` +
+        `during ("${year}-${mm}-01", "${nextMonth}") ` +
+        `AND issuetype not in subTaskIssueTypes()`
 
       const [worklogIssues, closedIssues] = await Promise.all([
         fetchJira(auth.domain, auth.email, auth.token, worklogJql),
         fetchJira(auth.domain, auth.email, auth.token, closedJql),
       ])
 
-      // Project worklog
+      // Project worklog — 이슈별 worklog에서 '이번 달 + 본인' 것만 합산
+      const from = `${year}-${mm}-01`
+      const seconds = accountId
+        ? await mapLimit(worklogIssues, 4, (i) =>
+            fetchMyMonthlySeconds(auth.domain, auth.email, auth.token, i.key, accountId, from, nextMonth),
+          )
+        : worklogIssues.map(() => 0)
+
       const pMap = new Map<string, number>()
-      worklogIssues.forEach((i) => {
+      worklogIssues.forEach((i, idx) => {
         const pk = i.fields.project.key
-        pMap.set(pk, (pMap.get(pk) || 0) + (i.fields.timespent || 0) / 3600)
+        pMap.set(pk, (pMap.get(pk) || 0) + seconds[idx] / 3600)
       })
       setProjectData(
         Array.from(pMap, ([project, hours]) => ({ project, hours: Math.round(hours * 10) / 10 }))
@@ -148,14 +202,14 @@ export default function JiraDashboard() {
         Array.from(sMap, ([status, count]) => ({ status, count })).sort((a, b) => b.count - a.count)
       )
       setRecentClosings(
-        tickets.sort((a, b) => new Date(b.resolved).getTime() - new Date(a.resolved).getTime()).slice(0, 5)
+        tickets.sort((a, b) => new Date(b.resolved).getTime() - new Date(a.resolved).getTime())
       )
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data')
     } finally {
       setLoading(false)
     }
-  }, [auth, year, mm, nextMonth])
+  }, [auth, accountId, year, mm, nextMonth])
 
   useEffect(() => { loadData() }, [loadData])
 
@@ -363,8 +417,14 @@ export default function JiraDashboard() {
             <div className="rounded-lg bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 p-4">
               <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
                 Recent Closings
+                {recentClosings.length > 0 && (
+                  <span className="ml-2 text-gray-500 normal-case tracking-normal">
+                    {recentClosings.length}건
+                  </span>
+                )}
               </h3>
               {recentClosings.length > 0 ? (
+                <div className="max-h-[420px] overflow-y-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-neutral-700 text-left text-[11px] text-gray-400 uppercase tracking-wider">
@@ -378,10 +438,7 @@ export default function JiraDashboard() {
                     {recentClosings.map((t) => (
                       <tr key={t.key} className="border-b border-gray-100 dark:border-neutral-800 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors duration-100">
                         <td className="py-1.5 pr-3 font-mono text-xs">
-                          <div className="flex items-center gap-1">
-                            <span>{t.key}</span>
-                            <CopyButton text={t.key} />
-                          </div>
+                          <IssueLink issueKey={t.key} />
                         </td>
                         <td className="py-1.5 pr-3 text-xs truncate max-w-[240px]">{t.summary}</td>
                         <td className="py-1.5 pr-3">
@@ -399,6 +456,7 @@ export default function JiraDashboard() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               ) : (
                 <p className="py-6 text-center text-sm text-gray-400">No closed tickets</p>
               )}
