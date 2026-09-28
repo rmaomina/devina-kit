@@ -29,7 +29,6 @@ function EncodePanel() {
     if (!canvas) return
     if (!text) {
       canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height)
-      setError('')
       return
     }
     // 다크모드에서도 흰 배경·검은 모듈을 유지한다. 반전시키면 인식률이 떨어진다.
@@ -58,7 +57,10 @@ function EncodePanel() {
     <div className="space-y-3">
       <textarea
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => {
+          setText(e.target.value)
+          setError('')
+        }}
         placeholder="QR로 만들 텍스트 또는 URL을 입력하세요"
         rows={4}
         className="w-full px-3 py-2 rounded border-2 border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm resize-y focus:outline-none focus:border-dewalt transition-colors duration-150"
